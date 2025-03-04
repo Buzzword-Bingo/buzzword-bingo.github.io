@@ -1,0 +1,139 @@
+<!--
+0BSD/CC0/Public Domain
+
+mostly patched together from LLM vommit of variations of the following prompt
+
+Please write a HTML/JS Website for bullshit bingo. It takes a number of strings, separated by a semicolon in the fragment part of the URL. The first one is the title of the bingo and the rest are displayed in random order in a grid. If more terms are given, take a random subset for the next smaller matching grid.
+Additionally if touched/clicked the background color toggles to red.
+
+There should be no gaps between the grid cells. It should look like a normal table.
+
+If 8 terms are given, display in a 3x3 grid with the middle filed marked as bonus
+if 9 or more terms are given, display them in a 3x3 grid
+if 16 or more terms are given, display them in a 4x4 grid
+If 24 terms are given, display in a 5x5 grid with the middle filed marked as bonus
+If 25 or more terms are given, display in a 5x5 grid
+
+
+It would be really cool if the grid lines are also visible on the printing view. And it should work with longer strings in the grid cells (like a complete long sentence). Also spaces should be allowed and displayed correctly when entered into the fragment url.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buzzword Bingo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 {
+            text-align: center;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+        #bingo-grid {
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .bingo-cell {
+            width: 150px;
+            height: 150px;
+            border: 1px solid #000;
+            text-align: center;
+            vertical-align: middle;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            padding: 10px;
+            word-wrap: break-word;
+        }
+        .bingo-cell.marked {
+            background-color: red;
+        }
+        .bingo-cell.bonus {
+            background-color: #ffff99;
+        }
+        @media print {
+            .bingo-cell {
+                border: 1px solid #000 !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 id="bingo-title"></h1>
+    <table id="bingo-grid"></table>
+
+    <script>
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function createBingoGrid(terms) {
+            const grid = document.getElementById('bingo-grid');
+            let size, bonusCell;
+
+            if (terms.length <= 8) {
+                size = 3;
+                bonusCell = 4;
+            } else if (terms.length <= 15) {
+                size = 3;
+            } else if (terms.length <= 23) {
+                size = 4;
+            } else if (terms.length === 24) {
+                size = 5;
+                bonusCell = 12;
+            } else {
+                size = 5;
+            }
+
+            const cellCount = size * size;
+            if (terms.length > cellCount) {
+                terms = shuffleArray(terms).slice(0, cellCount);
+            }
+
+            const shuffledTerms = shuffleArray(terms);
+            for (let i = 0; i < size; i++) {
+                const row = grid.insertRow();
+                for (let j = 0; j < size; j++) {
+                    const cell = row.insertCell();
+                    cell.className = 'bingo-cell';
+                    const index = i * size + j;
+                    if (index === bonusCell) {
+                        cell.textContent = 'BONUS';
+                        cell.classList.add('bonus');
+                    } else {
+                        cell.textContent = shuffledTerms[index] || '';
+                    }
+                    cell.addEventListener('click', () => {
+                        cell.classList.toggle('marked');
+                    });
+                }
+            }
+        }
+
+        function initBingo() {
+            const fragment = decodeURIComponent(window.location.hash.slice(1));
+            const terms = fragment.split(';');
+            const title = terms.shift();
+            if (terms.length == 0) alert("Append #Title;Bingo1;Bingo2;Bingo3;Bingo4;…;BingoN to the URL an reload");
+
+            document.getElementById('bingo-title').textContent = title;
+            createBingoGrid(terms);
+        }
+
+        window.onload = initBingo;
+    </script>
+</body>
+</html>
